@@ -1,0 +1,26 @@
+on: ["push", "pull_request"]
+
+name: CI
+
+jobs:
+
+  ci-jobs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup nodejs
+      uses: actions/setup-node@v2
+
+    - name: Install Requirements
+      run: npm install
+
+    - name: Run js prettier
+      run: npx prettier "./**/**/*.js" -c
+
+    - name: Run sol prettier
+      run: npx prettier "./**/**/*.sol" -c
+
+    - name: Run tests
+      run: npx hardhat test ./test/unitTests/*
