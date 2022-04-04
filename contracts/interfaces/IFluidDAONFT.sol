@@ -2,7 +2,7 @@
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 pragma solidity ^0.8.6;
 
-interface ISquidDAONFT is IERC721 {
+interface IFluidDAONFT is IERC721 {
     function mint(address receiver) external returns (uint256 tokenId);
 
     function burn(uint256 tokenId) external;
