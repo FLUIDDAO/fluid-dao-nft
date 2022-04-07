@@ -14,15 +14,15 @@ describe("AuctionHouseProxy", () => {
     adminAddress = await admin.getAddress();
     user1 = accounts[1];
     user1Address = await user1.getAddress();
-    const squidDAONFTFactory = await ethers.getContractFactory("SquidDAONFT");
-    const squidDAONFT = await squidDAONFTFactory.deploy();
+    const fluidDAONFTFactory = await ethers.getContractFactory("FluidDAONFT");
+    const fluidDAONFT = await fluidDAONFTFactory.deploy();
     const auctionHouseFactory = await ethers.getContractFactory("AuctionHouse");
     const implementation = await auctionHouseFactory.deploy();
     const fragment = auctionHouseFactory.interface.getFunction("initialize");
     const initData = auctionHouseFactory.interface.encodeFunctionData(
       fragment,
       [
-        squidDAONFT.address,
+        fluidDAONFT.address,
         weth,
         300, // 5min
         ethers.BigNumber.from("1000000000000000000"), // 1 ether
