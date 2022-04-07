@@ -109,7 +109,7 @@ contract AuctionHouse is
             "Fluid not up for auction"
         );
         require(block.timestamp < _auction.endTime, "Auction expired");
-        uint amount = msg.value;
+        uint256 amount = msg.value;
         require(amount >= reservePrice, "Must send at least reservePrice");
         require(
             amount >=
@@ -224,11 +224,7 @@ contract AuctionHouse is
      * @dev 24 auctions = 1st day, 12 auctions = 2nd day, 6 auctions = 3rd day, 3 auctions = 4th day, 2 auction = 5th day,
      *      then use duration (initialised at 24 hours per)
      */
-    function _getAuctionDuration()
-        internal
-        view
-        returns (uint256)
-    {
+    function _getAuctionDuration() internal view returns (uint256) {
         return duration;
     }
 
