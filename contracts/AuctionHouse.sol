@@ -96,7 +96,7 @@ contract AuctionHouse is
      * @notice Create a bid for a Noun, with a given amount.
      * @dev This contract only accepts payment in ETH.
      */
-    function createBid(uint256 fluidDAONFTId, uint256 amount)
+    function createBid(uint256 fluidDAONFTId)
         external
         payable
         override
@@ -106,18 +106,10 @@ contract AuctionHouse is
         require(ohm != address(0), "ohm token address not set");
         require(
             _auction.fluidDAONFTId == fluidDAONFTId,
-            "Noun not up for auction"
+            "Fluid not up for auction"
         );
         require(block.timestamp < _auction.endTime, "Auction expired");
-        bool isOHMAuction = _isOHMAuction(_auction.fluidDAONFTId);
-        if (!isOHMAuction) {
-            amount = msg.value;
-        } else {
-            require(
-                msg.value == 0,
-                "ohm auctions only accept OHM, pls do not send ether"
-            );
-        }
+        uint amount = msg.value;
         require(amount >= reservePrice, "Must send at least reservePrice");
         require(
             amount >=
@@ -125,20 +117,13 @@ contract AuctionHouse is
                     ((_auction.amount * minBidIncrementPercentage) / 100),
             "Must send more than last bid by minBidIncrementPercentage amount"
         );
-        if (isOHMAuction) {
-            IERC20(ohm).transferFrom(msg.sender, address(this), amount);
-        }
 
         address payable lastBidder = _auction.bidder;
         uint256 lastBidAmount = _auction.amount;
 
         // Refund the last bidder, if applicable
         if (lastBidder != address(0)) {
-            if (isOHMAuction) {
-                IERC20(ohm).transfer(lastBidder, lastBidAmount);
-            } else {
-                _safeTransferETHWithFallback(lastBidder, lastBidAmount);
-            }
+            _safeTransferETHWithFallback(lastBidder, lastBidAmount);
         }
 
         auction.amount = amount;
@@ -239,24 +224,12 @@ contract AuctionHouse is
      * @dev 24 auctions = 1st day, 12 auctions = 2nd day, 6 auctions = 3rd day, 3 auctions = 4th day, 2 auction = 5th day,
      *      then use duration (initialised at 24 hours per)
      */
-    function _getAuctionDuration(uint256 fluidDAONFTId)
+    function _getAuctionDuration()
         internal
         view
         returns (uint256)
     {
-        if (fluidDAONFTId <= 23) {
-            return 1 hours;
-        } else if (fluidDAONFTId <= 35) {
-            return 2 hours;
-        } else if (fluidDAONFTId <= 41) {
-            return 4 hours;
-        } else if (fluidDAONFTId <= 44) {
-            return 8 hours;
-        } else if (fluidDAONFTId <= 46) {
-            return 12 hours;
-        } else {
-            return duration;
-        }
+        return duration;
     }
 
     /**
@@ -268,7 +241,7 @@ contract AuctionHouse is
     function _createAuction() internal {
         try fluidDAONFT.mint(address(this)) returns (uint256 fluidDAONFTId) {
             uint256 startTime = block.timestamp;
-            uint256 endTime = startTime + _getAuctionDuration(fluidDAONFTId);
+            uint256 endTime = startTime + _getAuctionDuration();
 
             auction = Auction({
                 fluidDAONFTId: fluidDAONFTId,
@@ -283,10 +256,6 @@ contract AuctionHouse is
         } catch Error(string memory err) {
             _pause();
         }
-    }
-
-    function _isOHMAuction(uint256 tokenId) internal pure returns (bool) {
-        return tokenId >= 83 && tokenId <= 94;
     }
 
     /**
@@ -315,11 +284,7 @@ contract AuctionHouse is
             );
         }
         if (_auction.amount > 0) {
-            if (_isOHMAuction(_auction.fluidDAONFTId)) {
-                IERC20(ohm).transfer(owner(), _auction.amount);
-            } else {
-                _safeTransferETHWithFallback(owner(), _auction.amount);
-            }
+            _safeTransferETHWithFallback(owner(), _auction.amount);
         }
 
         emit AuctionSettled(
