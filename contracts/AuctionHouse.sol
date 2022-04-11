@@ -50,7 +50,7 @@ contract AuctionHouse is
      * @dev This function can only be called once.
      */
     function initialize(
-        ISquidDAONFT _squidDAONFT,
+        IFluidDAONFT _fluidDAONFT,
         address _weth,
         uint256 _timeBuffer,
         uint256 _reservePrice,
@@ -63,7 +63,7 @@ contract AuctionHouse is
 
         _pause();
 
-        squidDAONFT = _squidDAONFT;
+        fluidDAONFT = _fluidDAONFT;
         weth = _weth;
         timeBuffer = _timeBuffer;
         reservePrice = _reservePrice;
@@ -96,7 +96,7 @@ contract AuctionHouse is
      * @notice Create a bid for a Noun, with a given amount.
      * @dev This contract only accepts payment in ETH.
      */
-    function createBid(uint256 squidDAONFTId, uint256 amount)
+    function createBid(uint256 fluidDAONFTId)
         external
         payable
         override
@@ -105,19 +105,11 @@ contract AuctionHouse is
         IAuctionHouse.Auction memory _auction = auction;
         require(ohm != address(0), "ohm token address not set");
         require(
-            _auction.squidDAONFTId == squidDAONFTId,
-            "Noun not up for auction"
+            _auction.fluidDAONFTId == fluidDAONFTId,
+            "Fluid not up for auction"
         );
         require(block.timestamp < _auction.endTime, "Auction expired");
-        bool isOHMAuction = _isOHMAuction(_auction.squidDAONFTId);
-        if (!isOHMAuction) {
-            amount = msg.value;
-        } else {
-            require(
-                msg.value == 0,
-                "ohm auctions only accept OHM, pls do not send ether"
-            );
-        }
+        uint256 amount = msg.value;
         require(amount >= reservePrice, "Must send at least reservePrice");
         require(
             amount >=
@@ -125,20 +117,13 @@ contract AuctionHouse is
                     ((_auction.amount * minBidIncrementPercentage) / 100),
             "Must send more than last bid by minBidIncrementPercentage amount"
         );
-        if (isOHMAuction) {
-            IERC20(ohm).transferFrom(msg.sender, address(this), amount);
-        }
 
         address payable lastBidder = _auction.bidder;
         uint256 lastBidAmount = _auction.amount;
 
         // Refund the last bidder, if applicable
         if (lastBidder != address(0)) {
-            if (isOHMAuction) {
-                IERC20(ohm).transfer(lastBidder, lastBidAmount);
-            } else {
-                _safeTransferETHWithFallback(lastBidder, lastBidAmount);
-            }
+            _safeTransferETHWithFallback(lastBidder, lastBidAmount);
         }
 
         auction.amount = amount;
@@ -150,10 +135,10 @@ contract AuctionHouse is
             auction.endTime = _auction.endTime = block.timestamp + timeBuffer;
         }
 
-        emit AuctionBid(_auction.squidDAONFTId, msg.sender, amount, extended);
+        emit AuctionBid(_auction.fluidDAONFTId, msg.sender, amount, extended);
 
         if (extended) {
-            emit AuctionExtended(_auction.squidDAONFTId, _auction.endTime);
+            emit AuctionExtended(_auction.fluidDAONFTId, _auction.endTime);
         }
     }
 
@@ -239,24 +224,8 @@ contract AuctionHouse is
      * @dev 24 auctions = 1st day, 12 auctions = 2nd day, 6 auctions = 3rd day, 3 auctions = 4th day, 2 auction = 5th day,
      *      then use duration (initialised at 24 hours per)
      */
-    function _getAuctionDuration(uint256 squidDAONFTId)
-        internal
-        view
-        returns (uint256)
-    {
-        if (squidDAONFTId <= 23) {
-            return 1 hours;
-        } else if (squidDAONFTId <= 35) {
-            return 2 hours;
-        } else if (squidDAONFTId <= 41) {
-            return 4 hours;
-        } else if (squidDAONFTId <= 44) {
-            return 8 hours;
-        } else if (squidDAONFTId <= 46) {
-            return 12 hours;
-        } else {
-            return duration;
-        }
+    function _getAuctionDuration() internal view returns (uint256) {
+        return duration;
     }
 
     /**
@@ -266,12 +235,12 @@ contract AuctionHouse is
      * catch the revert and pause this contract.
      */
     function _createAuction() internal {
-        try squidDAONFT.mint(address(this)) returns (uint256 squidDAONFTId) {
+        try fluidDAONFT.mint(address(this)) returns (uint256 fluidDAONFTId) {
             uint256 startTime = block.timestamp;
-            uint256 endTime = startTime + _getAuctionDuration(squidDAONFTId);
+            uint256 endTime = startTime + _getAuctionDuration();
 
             auction = Auction({
-                squidDAONFTId: squidDAONFTId,
+                fluidDAONFTId: fluidDAONFTId,
                 amount: 0,
                 startTime: startTime,
                 endTime: endTime,
@@ -279,14 +248,10 @@ contract AuctionHouse is
                 settled: false
             });
 
-            emit AuctionCreated(squidDAONFTId, startTime, endTime);
+            emit AuctionCreated(fluidDAONFTId, startTime, endTime);
         } catch Error(string memory err) {
             _pause();
         }
-    }
-
-    function _isOHMAuction(uint256 tokenId) internal pure returns (bool) {
-        return tokenId >= 83 && tokenId <= 94;
     }
 
     /**
@@ -306,24 +271,20 @@ contract AuctionHouse is
         auction.settled = true;
 
         if (_auction.bidder == address(0)) {
-            squidDAONFT.burn(_auction.squidDAONFTId);
+            fluidDAONFT.burn(_auction.fluidDAONFTId);
         } else {
-            squidDAONFT.transferFrom(
+            fluidDAONFT.transferFrom(
                 address(this),
                 _auction.bidder,
-                _auction.squidDAONFTId
+                _auction.fluidDAONFTId
             );
         }
         if (_auction.amount > 0) {
-            if (_isOHMAuction(_auction.squidDAONFTId)) {
-                IERC20(ohm).transfer(owner(), _auction.amount);
-            } else {
-                _safeTransferETHWithFallback(owner(), _auction.amount);
-            }
+            _safeTransferETHWithFallback(owner(), _auction.amount);
         }
 
         emit AuctionSettled(
-            _auction.squidDAONFTId,
+            _auction.fluidDAONFTId,
             _auction.bidder,
             _auction.amount
         );

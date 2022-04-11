@@ -19,8 +19,8 @@ pragma solidity ^0.8.6;
 
 interface IAuctionHouse {
     struct Auction {
-        // ID for the squid DAO NFT (ERC721 token ID)
-        uint256 squidDAONFTId;
+        // ID for the fluid DAO NFT (ERC721 token ID)
+        uint256 fluidDAONFTId;
         // The current highest bid amount
         uint256 amount;
         // The time that the auction started
@@ -34,22 +34,22 @@ interface IAuctionHouse {
     }
 
     event AuctionCreated(
-        uint256 indexed squidDAONFTId,
+        uint256 indexed fluidDAONFTId,
         uint256 startTime,
         uint256 endTime
     );
 
     event AuctionBid(
-        uint256 indexed squidDAONFTId,
+        uint256 indexed fluidDAONFTId,
         address sender,
         uint256 value,
         bool extended
     );
 
-    event AuctionExtended(uint256 indexed squidDAONFTId, uint256 endTime);
+    event AuctionExtended(uint256 indexed fluidDAONFTId, uint256 endTime);
 
     event AuctionSettled(
-        uint256 indexed squidDAONFTId,
+        uint256 indexed fluidDAONFTId,
         address winner,
         uint256 amount
     );
@@ -68,7 +68,7 @@ interface IAuctionHouse {
 
     function settleCurrentAndCreateNewAuction() external;
 
-    function createBid(uint256 squidDAONFTId, uint256 amount) external payable;
+    function createBid(uint256 fluidDAONFTId) external payable;
 
     function pause() external;
 

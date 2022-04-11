@@ -5,7 +5,7 @@ const { signLenderMessage } = require("../testUtils.js");
 describe("AuctionHouse", () => {
   let accounts;
   let admin, adminAddress;
-  let squidDAONFT;
+  let fluidDAONFT;
   let auctionHouse;
   let mockWeth = "0xc778417e063141139fce010982780140aa0cd5ab";
 
@@ -13,15 +13,15 @@ describe("AuctionHouse", () => {
     accounts = await ethers.getSigners();
     admin = accounts[0];
     adminAddress = await admin.getAddress();
-    const squidDAONFTFactory = await ethers.getContractFactory("SquidDAONFT");
+    const fluidDAONFTFactory = await ethers.getContractFactory("FluidDAONFT");
     const auctionHouseFactory = await ethers.getContractFactory("AuctionHouse");
     const auctionHouseProxyFactory = await ethers.getContractFactory(
       "AuctionHouseProxy"
     );
 
-    squidDAONFT = await squidDAONFTFactory.deploy();
-    await squidDAONFT.deployed();
-    console.log(`squidDAONFT ${squidDAONFT.address}`);
+    fluidDAONFT = await fluidDAONFTFactory.deploy();
+    await fluidDAONFT.deployed();
+    console.log(`fluidDAONFT ${fluidDAONFT.address}`);
 
     const implementation = await auctionHouseFactory.deploy();
     await implementation.deployed();
@@ -31,7 +31,7 @@ describe("AuctionHouse", () => {
     const initData = auctionHouseFactory.interface.encodeFunctionData(
       fragment,
       [
-        squidDAONFT.address,
+        fluidDAONFT.address,
         mockWeth,
         300, // 5min
         ethers.BigNumber.from("1000000000000000000"), // 1 ether
@@ -48,7 +48,7 @@ describe("AuctionHouse", () => {
     await proxy.deployed();
     console.log(`auctionHouse proxy ${proxy.address}`);
     auctionHouse = auctionHouseFactory.attach(proxy.address);
-    await squidDAONFT.setAuctionHouse(proxy.address);
+    await fluidDAONFT.setAuctionHouse(proxy.address);
   });
   it("unpause auction", async () => {
     await auctionHouse.unpause();

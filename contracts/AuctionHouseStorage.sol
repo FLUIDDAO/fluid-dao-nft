@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import {ISquidDAONFT} from "./interfaces/ISquidDAONFT.sol";
+import {IFluidDAONFT} from "./interfaces/IFluidDAONFT.sol";
 import {IAuctionHouse} from "./interfaces/IAuctionHouse.sol";
 
 contract AuctionHouseStorage {
     // The ERC721 token contract
-    ISquidDAONFT public squidDAONFT;
+    IFluidDAONFT public fluidDAONFT;
 
     // The address of the WETH contract
     address public weth;

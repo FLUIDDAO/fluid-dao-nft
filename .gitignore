@@ -8,3 +8,4 @@ secret.json
 *.png
 *.csv
 *.txt
+secrets.json
