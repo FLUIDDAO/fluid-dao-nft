@@ -29,7 +29,8 @@ contract FluidToken is
 {
     using SafeMathUpgradeable for uint256;
     address public treasury;
-    address public constant DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+    address public constant DEAD_ADDRESS =
+        0x000000000000000000000000000000000000dEaD;
     mapping(address => bool) public whitelistedAddress;
 
     IUniswapV2Router02 public uniswapV2Router;
@@ -175,7 +176,13 @@ contract FluidToken is
             super._transfer(sender, address(this), rewardAmount);
 
             // The other amount will be sent to the receipient
-            super._transfer(sender, recipient, amount.sub(taxAmount).sub(burnAmount).sub(liquidityAmount).sub(rewardAmount));
+            super._transfer(
+                sender,
+                recipient,
+                amount.sub(taxAmount).sub(burnAmount).sub(liquidityAmount).sub(
+                    rewardAmount
+                )
+            );
         }
     }
 
