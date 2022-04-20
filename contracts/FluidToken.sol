@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesCompUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import {IFluidToken} from "./interfaces/IFluidToken.sol";
 import "./interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IUniswapV2Factory.sol";
 
@@ -20,7 +20,7 @@ interface ITreasury {
 contract FluidToken is
     Initializable,
     UUPSUpgradeable,
-    ERC20Upgradeable,
+    IFluidToken,
     ERC20PermitUpgradeable,
     ERC20VotesUpgradeable,
     ERC20VotesCompUpgradeable,
@@ -80,6 +80,10 @@ contract FluidToken is
         uniswapV2Router = _uniswapV2Router;
 
         _mint(initialHolder, initialSupply);
+    }
+
+    function mint(address _to) external override {
+        _mint(_to, 1 * 10**18);
     }
 
     function _beforeTokenTransfer(
