@@ -1,27 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 
-/// @title The Nouns DAO auction house
-
-/*********************************
- * ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ *
- * ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ *
- * ░░░░░░█████████░░█████████░░░ *
- * ░░░░░░██░░░████░░██░░░████░░░ *
- * ░░██████░░░████████░░░████░░░ *
- * ░░██░░██░░░████░░██░░░████░░░ *
- * ░░██░░██░░░████░░██░░░████░░░ *
- * ░░░░░░█████████░░█████████░░░ *
- * ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ *
- * ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ *
- *********************************/
-
-// LICENSE
-// NounsAuctionHouse.sol is a modified version of Zora's AuctionHouse.sol:
-// https://github.com/ourzora/auction-house/blob/54a12ec1a6cf562e49f0a4917990474b11350a2d/contracts/AuctionHouse.sol
-//
-// AuctionHouse.sol source code Copyright Zora licensed under the GPL-3.0 license.
-// With modifications by Nounders DAO.
-
+/// @title The Fluid DAO auction house
 pragma solidity ^0.8.6;
 
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -34,6 +13,7 @@ import "./AuctionHouseStorage.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
 import {IAuctionHouse} from "./interfaces/IAuctionHouse.sol";
 import {ITreasury} from "./interfaces/ITreasury.sol";
+import {IFluidToken} from "./interfaces/IFluidToken.sol";
 
 contract AuctionHouse is
     Initializable,
@@ -51,6 +31,7 @@ contract AuctionHouse is
      */
     function initialize(
         IFluidDAONFT _fluidDAONFT,
+        IFluidToken _fluidToken,
         address _weth,
         uint256 _timeBuffer,
         uint256 _reservePrice,
@@ -64,6 +45,7 @@ contract AuctionHouse is
         _pause();
 
         fluidDAONFT = _fluidDAONFT;
+        fluidToken = _fluidToken;
         weth = _weth;
         timeBuffer = _timeBuffer;
         reservePrice = _reservePrice;
@@ -103,7 +85,6 @@ contract AuctionHouse is
         nonReentrant
     {
         IAuctionHouse.Auction memory _auction = auction;
-        require(ohm != address(0), "ohm token address not set");
         require(
             _auction.fluidDAONFTId == fluidDAONFTId,
             "Fluid not up for auction"
@@ -215,8 +196,12 @@ contract AuctionHouse is
         );
     }
 
-    function setOhm(address _ohm) external onlyOwner {
-        ohm = _ohm;
+    function setFluidToken(IFluidToken _fluidToken)
+        external
+        override
+        onlyOwner
+    {
+        fluidToken = _fluidToken;
     }
 
     /**
@@ -260,7 +245,6 @@ contract AuctionHouse is
      */
     function _settleAuction() internal {
         IAuctionHouse.Auction memory _auction = auction;
-        require(ohm != address(0), "ohm token address not set");
         require(_auction.startTime != 0, "Auction hasn't begun");
         require(!_auction.settled, "Auction has already been settled");
         require(
@@ -278,6 +262,7 @@ contract AuctionHouse is
                 _auction.bidder,
                 _auction.fluidDAONFTId
             );
+            IFluidToken(fluidToken).mint(_auction.bidder);
         }
         if (_auction.amount > 0) {
             _safeTransferETHWithFallback(owner(), _auction.amount);

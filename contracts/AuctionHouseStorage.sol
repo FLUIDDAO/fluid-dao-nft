@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {IFluidDAONFT} from "./interfaces/IFluidDAONFT.sol";
+import {IFluidToken} from "./interfaces/IFluidToken.sol";
 import {IAuctionHouse} from "./interfaces/IAuctionHouse.sol";
 
 contract AuctionHouseStorage {
@@ -26,4 +28,7 @@ contract AuctionHouseStorage {
     IAuctionHouse.Auction public auction;
 
     address public ohm;
+
+    // FluidToken address
+    IFluidToken public fluidToken;
 }

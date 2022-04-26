@@ -1,21 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
-
-/// @title Interface for Noun Auction Houses
-
-/*********************************
- * ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ *
- * ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ *
- * ░░░░░░█████████░░█████████░░░ *
- * ░░░░░░██░░░████░░██░░░████░░░ *
- * ░░██████░░░████████░░░████░░░ *
- * ░░██░░██░░░████░░██░░░████░░░ *
- * ░░██░░██░░░████░░██░░░████░░░ *
- * ░░░░░░█████████░░█████████░░░ *
- * ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ *
- * ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ *
- *********************************/
-
 pragma solidity ^0.8.6;
+
+import {IFluidToken} from "./IFluidToken.sol";
 
 interface IAuctionHouse {
     struct Auction {
@@ -82,4 +68,6 @@ interface IAuctionHouse {
 
     function setMinBidIncrementPercentage(uint8 minBidIncrementPercentage)
         external;
+
+    function setFluidToken(IFluidToken _fluidToken) external;
 }

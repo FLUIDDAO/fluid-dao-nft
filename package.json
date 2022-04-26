@@ -6,6 +6,7 @@
   "scripts": {
     "lint": "./script/lint",
     "format": "./script/format",
+    "compile": "npx hardhat compile",
     "unit-test": "npx hardhat test ./test/unitTests/*",
     "integration-test": "npx hardhat test ./test/integrationTests/*",
     "coverage": "npx hardhat coverage --testfiles './test/unitTests/*.js'"
