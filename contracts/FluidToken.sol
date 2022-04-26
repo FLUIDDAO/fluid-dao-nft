@@ -36,7 +36,7 @@ contract FluidToken is
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
 
-    bool inSwapAndLiquify;
+    bool private inSwapAndLiquify;
     bool public swapAndLiquifyEnabled = true;
 
     uint256 private numTokensSellToAddToLiquidity = 500 * 10**18;
