@@ -3,33 +3,46 @@
 /// @title The Fluid DAO auction house
 pragma solidity ^0.8.6;
 
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./AuctionHouseStorage.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
 import {IAuctionHouse} from "./interfaces/IAuctionHouse.sol";
 import {ITreasury} from "./interfaces/ITreasury.sol";
 import {IFluidToken} from "./interfaces/IFluidToken.sol";
+import {IFluidDAONFT} from "./interfaces/IFluidDAONFT.sol";
 
-contract AuctionHouse is
-    Initializable,
-    UUPSUpgradeable,
-    PausableUpgradeable,
-    ReentrancyGuardUpgradeable,
-    OwnableUpgradeable,
-    AuctionHouseStorage,
-    IAuctionHouse
-{
-    /**
-     * @notice Initialize the auction house and base contracts,
-     * populate configuration values, and pause the contract.
-     * @dev This function can only be called once.
-     */
-    function initialize(
+
+contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
+
+    // The ERC721 token contract
+    IFluidDAONFT public fluidDAONFT;
+
+    // The address of the WETH contract
+    address public weth;
+
+    // The minimum amount of time left in an auction after a new bid is created
+    uint256 public timeBuffer;
+
+    // The minimum price accepted in an auction
+    uint256 public reservePrice;
+
+    // The minimum percentage difference between the last bid amount and the current bid
+    uint8 public minBidIncrementPercentage;
+
+    // The duration of a single auction
+    uint256 public duration;
+
+    // The active auction
+    IAuctionHouse.Auction public auction;
+
+    address public ohm;
+
+    // FluidToken address
+    IFluidToken public fluidToken;
+
+    constructor(
         IFluidDAONFT _fluidDAONFT,
         IFluidToken _fluidToken,
         address _weth,
@@ -37,13 +50,7 @@ contract AuctionHouse is
         uint256 _reservePrice,
         uint8 _minBidIncrementPercentage,
         uint256 _duration
-    ) external initializer {
-        __Pausable_init();
-        __ReentrancyGuard_init();
-        __Ownable_init();
-
-        _pause();
-
+    ) {
         fluidDAONFT = _fluidDAONFT;
         fluidToken = _fluidToken;
         weth = _weth;
@@ -51,6 +58,8 @@ contract AuctionHouse is
         reservePrice = _reservePrice;
         minBidIncrementPercentage = _minBidIncrementPercentage;
         duration = _duration;
+
+        _pause();
     }
 
     /**
@@ -75,7 +84,7 @@ contract AuctionHouse is
     }
 
     /**
-     * @notice Create a bid for a Noun, with a given amount.
+     * @notice Create a bid for a FluidDAONFT, with a given amount.
      * @dev This contract only accepts payment in ETH.
      */
     function createBid(uint256 fluidDAONFTId)
@@ -296,17 +305,4 @@ contract AuctionHouse is
         (bool success, ) = to.call{value: value, gas: 30_000}(new bytes(0));
         return success;
     }
-
-    /**
-     * @dev _authorizeUpgrade is used by UUPSUpgradeable to determine if it's allowed to upgrade a proxy implementation.
-     //     added onlyOwner modifier for access control
-     * @param newImplementation The new implementation
-     *
-     * Ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/utils/UUPSUpgradeable.sol
-     */
-    function _authorizeUpgrade(address newImplementation)
-        internal
-        override
-        onlyOwner
-    {}
 }
