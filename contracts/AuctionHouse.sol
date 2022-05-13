@@ -13,7 +13,13 @@ import {ITreasury} from "./interfaces/ITreasury.sol";
 import {IFluidToken} from "./interfaces/IFluidToken.sol";
 import {IFluidDAONFT} from "./interfaces/IFluidDAONFT.sol";
 
-
+/*
+TODO
+- minBidIncrementPercentage: how much % should each bid be higher than the last by?
+- timeBuffer - what should that be set at?
+- address of dao?
+- Does DAO receive FLUID too?
+*/
 contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
 
     // The ERC721 token contract
@@ -37,10 +43,14 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
     // The active auction
     IAuctionHouse.Auction public auction;
 
-    address public ohm;
-
     // FluidToken address
     IFluidToken public fluidToken;
+
+    // DAO to receive every 10th nft
+    address public dao;
+
+    // FLUID erc20 amount rewarded to a winner
+    uint256 public rewardAmount = 1e18;
 
     constructor(
         IFluidDAONFT _fluidDAONFT,
@@ -156,82 +166,27 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
     }
 
     /**
-     * @notice Set the auction time buffer.
-     * @dev Only callable by the owner.
-     */
-    function setTimeBuffer(uint256 _timeBuffer) external override onlyOwner {
-        timeBuffer = _timeBuffer;
-
-        emit AuctionTimeBufferUpdated(_timeBuffer);
-    }
-
-    /**
-     * @notice Set the auction reserve price.
-     * @dev Only callable by the owner.
-     */
-    function setReservePrice(uint256 _reservePrice)
-        external
-        override
-        onlyOwner
-    {
-        reservePrice = _reservePrice;
-
-        emit AuctionReservePriceUpdated(_reservePrice);
-    }
-
-    /**
-     * @notice Set the auction duration.
-     * @dev Only callable by the owner.
-     */
-    function setDuration(uint256 _duration) external override onlyOwner {
-        duration = _duration;
-
-        emit AuctionDurationUpdated(_duration);
-    }
-
-    /**
-     * @notice Set the auction minimum bid increment percentage.
-     * @dev Only callable by the owner.
-     */
-    function setMinBidIncrementPercentage(uint8 _minBidIncrementPercentage)
-        external
-        override
-        onlyOwner
-    {
-        minBidIncrementPercentage = _minBidIncrementPercentage;
-
-        emit AuctionMinBidIncrementPercentageUpdated(
-            _minBidIncrementPercentage
-        );
-    }
-
-    function setFluidToken(IFluidToken _fluidToken)
-        external
-        override
-        onlyOwner
-    {
-        fluidToken = _fluidToken;
-    }
-
-    /**
-     * @notice Get auction duration
-     * @dev 24 auctions = 1st day, 12 auctions = 2nd day, 6 auctions = 3rd day, 3 auctions = 4th day, 2 auction = 5th day,
-     *      then use duration (initialised at 24 hours per)
-     */
-    function _getAuctionDuration() internal view returns (uint256) {
-        return duration;
-    }
-
-    /**
      * @notice Create an auction.
      * @dev Store the auction details in the `auction` state variable and emit an AuctionCreated event.
      * If the mint reverts, the minter was updated without pausing this contract first. To remedy this,
      * catch the revert and pause this contract.
      */
     function _createAuction() internal {
+        // mint every 10th to dao
+        if ((fluidDAONFT.totalSupply() + 1) % 10 == 0) {
+            fluidDAONFT.mint(dao, 1);
+
+            // lower rewards every hundred minted by 10%
+            if (fluidDAONFT.totalSupply() % 100 == 0) {
+                rewardAmount -= (rewardAmount / 10);
+            }
+            // send FLUID rewards to dao
+            fluidToken.mint(dao, rewardAmount);
+        }
+
         try fluidDAONFT.mint(address(this)) returns (uint256 fluidDAONFTId) {
             uint256 startTime = block.timestamp;
-            uint256 endTime = startTime + _getAuctionDuration();
+            uint256 endTime = startTime + duration;
 
             auction = Auction({
                 fluidDAONFTId: fluidDAONFTId,
@@ -271,7 +226,7 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
                 _auction.bidder,
                 _auction.fluidDAONFTId
             );
-            IFluidToken(fluidToken).mint(_auction.bidder);
+            fluidToken.mint(_auction.bidder, rewardAmount);
         }
         if (_auction.amount > 0) {
             _safeTransferETHWithFallback(owner(), _auction.amount);
