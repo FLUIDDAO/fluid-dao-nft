@@ -3,12 +3,13 @@ pragma solidity ^0.8.0;
 
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {ERC721Royalty} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {ERC721A} from "erc721a/contracts/ERC721A.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-contract FluidDAONFT is ERC721, ERC721Enumerable, ERC721Royalty, Ownable, ReentrancyGuard {
+// TODO: which address to receive initial mint?
+contract FluidDAONFT is ERC721A, ERC721Enumerable, ERC721Royalty, Ownable, ReentrancyGuard {
 
     event Minted(uint256 indexed tokenId, address receiver);
     event Burned(uint256 indexed tokenId);
@@ -16,12 +17,12 @@ contract FluidDAONFT is ERC721, ERC721Enumerable, ERC721Royalty, Ownable, Reentr
     using Strings for uint256;
     address public auctionHouse;
     address public royaltyWallet;
-    uint256 public _totalSupply;
     string private _baseURIExtended;
     mapping(uint256 => string) _tokenURIs;
 
-    constructor() ERC721("FluidDAONFT", "FLDN") {
+    constructor() ERC721A("FluidDAONFT", "FLDN") {
         _setDefaultRoyalty(royaltyWallet, 1000); // TODO: validate this is 10%
+        _safeMint(msg.sender, 16);
     }
 
     modifier onlyAuctionHouse() {
@@ -43,9 +44,10 @@ contract FluidDAONFT is ERC721, ERC721Enumerable, ERC721Royalty, Ownable, Reentr
         nonReentrant
         returns (uint256)
     {
-        _safeMint(receiver, ++_totalSupply, "");
-        emit Minted(_totalSupply, receiver);
-        return _totalSupply;
+        _safeMint(receiver, 1);
+        totalSupply_ = totalSupply();
+        emit Minted(totalSupply_, receiver);
+        return totalSupply_;
     }
 
     function burn(uint256 tokenId) external onlyAuctionHouse nonReentrant {
