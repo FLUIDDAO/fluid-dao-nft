@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesCompUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20VotesComp.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import {IFluidToken} from "./interfaces/IFluidToken.sol";
 import "./interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IUniswapV2Factory.sol";
@@ -19,15 +16,13 @@ interface ITreasury {
 
 contract FluidToken is
     Initializable,
-    UUPSUpgradeable,
     IFluidToken,
-    ERC20PermitUpgradeable,
-    ERC20VotesUpgradeable,
-    ERC20VotesCompUpgradeable,
-    OwnableUpgradeable,
-    PausableUpgradeable
+    ERC20Permit,
+    ERC20Votes,
+    ERC20VotesComp,
+    Ownable,
+    Pausable
 {
-    using SafeMathUpgradeable for uint256;
     address public treasury;
     address public constant DEAD_ADDRESS =
         0x000000000000000000000000000000000000dEaD;
@@ -56,17 +51,11 @@ contract FluidToken is
         inSwapAndLiquify = false;
     }
 
-    function initialize(address initialHolder, uint256 initialSupply)
-        public
-        initializer
+    constructor(
+        address initialHolder,
+        uint256 initialSupply
+    ) ERC20("Fluid DAO", "FLD") ERC20Permit("fluid")
     {
-        OwnableUpgradeable.__Ownable_init();
-        ERC20Upgradeable.__ERC20_init("Fluid DAO", "FLD");
-        ERC20PermitUpgradeable.__ERC20Permit_init("fluid");
-        ERC20VotesUpgradeable.__ERC20Votes_init_unchained();
-        __Pausable_init_unchained();
-        ERC20VotesCompUpgradeable.__ERC20VotesComp_init_unchained();
-
         // SushiV2Router02 address. It comes from https://dev.sushi.com/sushiswap/contracts
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(
             0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506
@@ -100,20 +89,20 @@ contract FluidToken is
         address from,
         address to,
         uint256 amount
-    ) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) {
-        ERC20VotesUpgradeable._afterTokenTransfer(from, to, amount);
+    ) internal override(ERC20, ERC20Votes) {
+        ERC20Votes._afterTokenTransfer(from, to, amount);
     }
 
     function _mint(address to, uint256 amount)
         internal
-        override(ERC20Upgradeable, ERC20VotesUpgradeable)
+        override(ERC20, ERC20Votes)
     {
         super._mint(to, amount);
     }
 
     function _burn(address account, uint256 amount)
         internal
-        override(ERC20Upgradeable, ERC20VotesUpgradeable)
+        override(ERC20, ERC20Votes)
     {
         super._burn(account, amount);
     }
@@ -143,7 +132,7 @@ contract FluidToken is
         internal
         view
         virtual
-        override(ERC20VotesCompUpgradeable, ERC20VotesUpgradeable)
+        override(ERC20VotesComp, ERC20Votes)
         returns (uint224)
     {
         return type(uint224).max;
@@ -152,9 +141,6 @@ contract FluidToken is
     //to recieve ETH from uniswapV2Router when swaping
     receive() external payable {}
 
-    function _authorizeUpgrade(address) internal view override {
-        require(owner() == msg.sender, "Only owner can upgrade implementation");
-    }
 
     function _transfer(
         address sender,
@@ -165,27 +151,25 @@ contract FluidToken is
             super._transfer(sender, recipient, amount);
         } else {
             // 0.1% will be sent to a burn address
-            uint256 burnAmount = amount.mul(1).div(1000);
+            uint256 burnAmount = amount / 1000;
             super._transfer(sender, DEAD_ADDRESS, burnAmount);
             // 0.1% will be sent to the DAO treasury
-            uint256 taxAmount = amount.mul(1).div(1000);
+            uint256 taxAmount = amount / 1000;
             super._transfer(sender, treasury, taxAmount);
             ITreasury(treasury).validatePayout();
             // 0.1% will be sent to the $FLUID/$ETH liquidity pool
-            uint256 liquidityAmount = amount.mul(1).div(1000);
+            uint256 liquidityAmount = amount / 1000;
             super._transfer(sender, address(this), liquidityAmount);
             _swapAndLiquify(sender);
             // 0.1% will be sent to all $FLUID stakers to reward loyal holders.
-            uint256 rewardAmount = amount.mul(1).div(1000);
+            uint256 rewardAmount = amount / 1000;
             super._transfer(sender, address(this), rewardAmount);
 
             // The other amount will be sent to the receipient
             super._transfer(
                 sender,
                 recipient,
-                amount.sub(taxAmount).sub(burnAmount).sub(liquidityAmount).sub(
-                    rewardAmount
-                )
+                amount - taxAmount - burnAmount - liquidityAmount - rewardAmount
             );
         }
     }
@@ -208,8 +192,8 @@ contract FluidToken is
 
     function swapAndLiquify(uint256 contractTokenBalance) private lockTheSwap {
         // split the contract balance into halves
-        uint256 half = contractTokenBalance.div(2);
-        uint256 otherHalf = contractTokenBalance.sub(half);
+        uint256 half = contractTokenBalance / 2;
+        uint256 otherHalf = contractTokenBalance - half;
 
         // capture the contract's current ETH balance.
         // this is so that we can capture exactly the amount of ETH that the
@@ -221,7 +205,7 @@ contract FluidToken is
         swapTokensForEth(half); // <- this breaks the ETH -> HATE swap when swap+liquify is triggered
 
         // how much ETH did we just swap into?
-        uint256 newBalance = address(this).balance.sub(initialBalance);
+        uint256 newBalance = address(this).balance - initialBalance;
 
         // add liquidity to uniswap
         addLiquidity(otherHalf, newBalance);
