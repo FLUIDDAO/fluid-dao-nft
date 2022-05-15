@@ -3,13 +3,14 @@ pragma solidity ^0.8.0;
 
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {ERC721Royalty} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
+import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
 import {ERC721A} from "erc721a/contracts/ERC721A.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-// TODO: which address to receive initial mint?
-contract FluidDAONFT is ERC721A, ERC721Enumerable, ERC721Royalty, Ownable, ReentrancyGuard {
+// TODO: which address to receive premint? - DAO, will also receive the FLUID
+contract FluidDAONFT is ERC721A, ERC2981, Ownable, ReentrancyGuard {
 
     event Minted(uint256 indexed tokenId, address receiver);
     event Burned(uint256 indexed tokenId);
@@ -42,12 +43,11 @@ contract FluidDAONFT is ERC721A, ERC721Enumerable, ERC721Royalty, Ownable, Reent
         external
         onlyAuctionHouse
         nonReentrant
-        returns (uint256)
+        returns (uint256 totalSupply_)
     {
         _safeMint(receiver, 1);
         totalSupply_ = totalSupply();
         emit Minted(totalSupply_, receiver);
-        return totalSupply_;
     }
 
     function burn(uint256 tokenId) external onlyAuctionHouse nonReentrant {
@@ -97,21 +97,18 @@ contract FluidDAONFT is ERC721A, ERC721Enumerable, ERC721Royalty, Ownable, Reent
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721Enumerable, ERC721Royalty)
+        override(ERC721A, ERC2981)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
     }
 
-    function _burn(uint256 tokenId) internal override(ERC721, ERC721Royalty) {
+    /**
+     * @dev See {ERC721-_burn}. This override additionally clears the royalty information for the token.
+     */
+    function _burn(uint256 tokenId) internal override {
         super._burn(tokenId);
+        _resetTokenRoyalty(tokenId);
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal override (ERC721, ERC721Enumerable) {
-        super._beforeTokenTransfer(from, to, tokenId);
-    }
 }

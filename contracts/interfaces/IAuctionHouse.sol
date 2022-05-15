@@ -60,14 +60,4 @@ interface IAuctionHouse {
 
     function unpause() external;
 
-    function setTimeBuffer(uint256 timeBuffer) external;
-
-    function setReservePrice(uint256 reservePrice) external;
-
-    function setDuration(uint256 duration) external;
-
-    function setMinBidIncrementPercentage(uint8 minBidIncrementPercentage)
-        external;
-
-    function setFluidToken(IFluidToken _fluidToken) external;
 }

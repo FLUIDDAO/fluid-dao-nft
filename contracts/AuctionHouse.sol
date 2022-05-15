@@ -6,19 +6,15 @@ pragma solidity ^0.8.6;
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAuctionHouse} from "./interfaces/IAuctionHouse.sol";
 import {ITreasury} from "./interfaces/ITreasury.sol";
 import {IFluidToken} from "./interfaces/IFluidToken.sol";
 import {IFluidDAONFT} from "./interfaces/IFluidDAONFT.sol";
 
 /*
-TODO
-- minBidIncrementPercentage: how much % should each bid be higher than the last by?
-- timeBuffer - what should that be set at?
-- address of dao?
-- Does DAO receive FLUID too?
+TODO: DAO receive FLUID too?
 */
 contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
 
@@ -29,13 +25,13 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
     address public weth;
 
     // The minimum amount of time left in an auction after a new bid is created
-    uint256 public timeBuffer;
+    uint256 public timeBuffer = 300;
 
     // The minimum price accepted in an auction
     uint256 public reservePrice;
 
     // The minimum percentage difference between the last bid amount and the current bid
-    uint8 public minBidIncrementPercentage;
+    uint8 public minBidIncrementPercentage = 2;
 
     // The duration of a single auction
     uint256 public duration;
@@ -47,7 +43,7 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
     IFluidToken public fluidToken;
 
     // DAO to receive every 10th nft
-    address public dao;
+    address public dao = 0xB17ca1BC1e9a00850B0b2436e41A055403512387;
 
     // FLUID erc20 amount rewarded to a winner
     uint256 public rewardAmount = 1e18;
@@ -184,7 +180,7 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
             fluidToken.mint(dao, rewardAmount);
         }
 
-        try fluidDAONFT.mint(address(this)) returns (uint256 fluidDAONFTId) {
+        try fluidDAONFT.mint(address(this), 1) returns (uint256 fluidDAONFTId) {
             uint256 startTime = block.timestamp;
             uint256 endTime = startTime + duration;
 
@@ -198,7 +194,7 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
             });
 
             emit AuctionCreated(fluidDAONFTId, startTime, endTime);
-        } catch Error(string memory err) {
+        } catch Error(string memory /* err */) {
             _pause();
         }
     }

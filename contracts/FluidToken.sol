@@ -15,7 +15,6 @@ interface ITreasury {
 }
 
 contract FluidToken is
-    Initializable,
     IFluidToken,
     ERC20Permit,
     ERC20Votes,
@@ -71,8 +70,8 @@ contract FluidToken is
         _mint(initialHolder, initialSupply);
     }
 
-    function mint(address _to) external override {
-        _mint(_to, 1 * 10**18);
+    function mint(address _to, uint256 amount) external override {
+        _mint(_to, amount);
     }
 
     function _beforeTokenTransfer(
