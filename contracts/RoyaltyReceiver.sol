@@ -16,8 +16,10 @@ contract RoyaltyReceiver is Ownable {
     function claimRoyalties(address token) external {
         // divide rewards by two - distribute 
         uint256 balance = IERC20(token).balanceOf(address(this));
-        uint256 half = balance/2;
+        uint256 functionCallReward = balance/100; // 1% reward to caller
+        uint256 half = (balance - functionCallReward)/2;
         IERC20(token).transfer(stakingPool, half);
         IERC20(token).transfer(dao, half);
+        IERC20(token).transfer(msg.sender, functionCallReward);
     }
 }
