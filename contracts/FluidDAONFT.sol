@@ -10,20 +10,34 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 // TODO: which address to receive premint? - DAO, will also receive the FLUID
+
+/// @title Fluid DAO ERC721
+/// @author @cartercarlson
+/// @notice The NFT contract for FLuid DAO
 contract FluidDAONFT is ERC721A, ERC2981, Ownable, ReentrancyGuard {
 
     event Minted(uint256 indexed tokenId, address receiver);
     event Burned(uint256 indexed tokenId);
 
     using Strings for uint256;
+
+    bool public isAuctionHouseLocked;
     address public auctionHouse;
-    address public royaltyWallet;
+    address public royaltyReceiver;
     string private _baseURIExtended;
     mapping(uint256 => string) _tokenURIs;
 
-    constructor() ERC721A("FluidDAONFT", "FLDN") {
-        _setDefaultRoyalty(royaltyWallet, 1000); // TODO: validate this is 10%
-        _safeMint(msg.sender, 16);
+    constructor(
+        address _royaltyReceiver,
+        address _auctionHouse,
+        address initialMintRecipient,
+        uint256 initialMintAmount
+    ) ERC721A("FluidDAONFT", "FLDN") {
+        royaltyReceiver = royaltyReceiver;
+        auctionHouse = _auctionHouse;
+
+        _setDefaultRoyalty(_royaltyReceiver, 1000); // 10%
+        _safeMint(initialMintRecipient, initialMintAmount);
     }
 
     modifier onlyAuctionHouse() {
@@ -31,17 +45,23 @@ contract FluidDAONFT is ERC721A, ERC2981, Ownable, ReentrancyGuard {
         _;
     }
 
+    modifier whenAuctionHouseNotLocked() {
+        require(!isAuctionHouseLocked, "AuctionHouse is locked");
+        _;
+    }
+
     function setAuctionHouse(address _auctionHouse) external onlyOwner {
         auctionHouse = _auctionHouse;
     }
 
-    function setRoyaltyWallet(address _royaltyWallet) external onlyOwner {
-        royaltyWallet = _royaltyWallet;
+    function lockAuctionHouse() external onlyOwner whenAuctionHouseNotLocked {
+        isAuctionHouseLocked = true;
     }
 
     function mint(address receiver)
         external
         onlyAuctionHouse
+        whenAuctionHouseNotLocked
         nonReentrant
         returns (uint256 totalSupply_)
     {

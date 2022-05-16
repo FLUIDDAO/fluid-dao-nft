@@ -68,9 +68,32 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
         _pause();
     }
 
-    /**
-     * @notice Settle the current auction, mint a new Noun, and put it up for auction.
-     */
+    /// @notice Set the auction time buffer.
+    /// @dev Only callable by the owner.
+    function setTimeBuffer(uint256 _timeBuffer) external override onlyOwner {
+        timeBuffer = _timeBuffer;
+
+        emit AuctionTimeBufferUpdated(_timeBuffer);
+    }
+
+
+    /// @notice Set the auction reserve price.
+    /// @dev Only callable by the owner.
+    function setReservePrice(uint256 _reservePrice) external override onlyOwner {
+        reservePrice = _reservePrice;
+
+        emit AuctionReservePriceUpdated(_reservePrice);
+    }
+
+    /// @notice Set the auction minimum bid increment percentage.
+    /// @dev Only callable by the owner.
+    function setMinBidIncrementPercentage(uint8 _minBidIncrementPercentage) external override onlyOwner {
+        minBidIncrementPercentage = _minBidIncrementPercentage;
+
+        emit AuctionMinBidIncrementPercentageUpdated(_minBidIncrementPercentage);
+    }
+
+    /// @notice Settle the current auction, mint a new Noun, and put it up for auction.
     function settleCurrentAndCreateNewAuction()
         external
         override
@@ -81,18 +104,15 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
         _createAuction();
     }
 
-    /**
-     * @notice Settle the current auction.
-     * @dev This function can only be called when the contract is paused.
-     */
+
+    /// @notice Settle the current auction.
+    /// @dev This function can only be called when the contract is paused.
     function settleAuction() external override whenPaused nonReentrant {
         _settleAuction();
     }
 
-    /**
-     * @notice Create a bid for a FluidDAONFT, with a given amount.
-     * @dev This contract only accepts payment in ETH.
-     */
+    /// @notice Create a bid for a FluidDAONFT, with a given amount.
+    /// @dev This contract only accepts payment in ETH.
     function createBid(uint256 fluidDAONFTId)
         external
         payable
@@ -138,21 +158,19 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
         }
     }
 
-    /**
-     * @notice Pause the auction house.
-     * @dev This function can only be called by the owner when the
-     * contract is unpaused. While no new auctions can be started when paused,
-     * anyone can settle an ongoing auction.
-     */
+    
+    /// @notice Pause the auction house.
+    /// @dev This function can only be called by the owner when the
+    /// contract is unpaused. While no new auctions can be started when paused,
+    /// anyone can settle an ongoing auction.
     function pause() external override onlyOwner {
         _pause();
     }
 
-    /**
-     * @notice Unpause the auction house.
-     * @dev This function can only be called by the owner when the
-     * contract is paused. If required, this function will start a new auction.
-     */
+
+    /// @notice Unpause the auction house.
+    /// @dev This function can only be called by the owner when the
+    /// contract is paused. If required, this function will start a new auction.
     function unpause() external override onlyOwner {
         _unpause();
 
@@ -161,12 +179,12 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
         }
     }
 
-    /**
-     * @notice Create an auction.
-     * @dev Store the auction details in the `auction` state variable and emit an AuctionCreated event.
-     * If the mint reverts, the minter was updated without pausing this contract first. To remedy this,
-     * catch the revert and pause this contract.
-     */
+
+    /// @notice Create an auction.
+    /// @dev Store the auction details in the `auction` state variable and emit an AuctionCreated event.
+    /// If the mint reverts, the minter was updated without pausing this contract first. To remedy this,
+    /// catch the revert and pause this contract.
+
     function _createAuction() internal {
         // mint every 10th to dao
         if ((fluidDAONFT.totalSupply() + 1) % 10 == 0) {
@@ -199,10 +217,9 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
         }
     }
 
-    /**
-     * @notice Settle an auction, finalizing the bid and paying out to the owner.
-     * @dev If there are no bids, the Noun is burned.
-     */
+
+    /// @notice Settle an auction, finalizing the bid and paying out to the owner.
+    /// @dev If there are no bids, the Noun is burned.
     function _settleAuction() internal {
         IAuctionHouse.Auction memory _auction = auction;
         require(_auction.startTime != 0, "Auction hasn't begun");
@@ -235,9 +252,7 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
         );
     }
 
-    /**
-     * @notice Transfer ETH. If the ETH transfer fails, wrap the ETH and try send it as WETH.
-     */
+    /// @notice Transfer ETH. If the ETH transfer fails, wrap the ETH and try send it as WETH.
     function _safeTransferETHWithFallback(address to, uint256 amount) internal {
         if (!_safeTransferETH(to, amount)) {
             IWETH(weth).deposit{value: amount}();
@@ -245,10 +260,9 @@ contract AuctionHouse is Pausable, ReentrancyGuard, Ownable, IAuctionHouse {
         }
     }
 
-    /**
-     * @notice Transfer ETH and return the success status.
-     * @dev This function only forwards 30,000 gas to the callee.
-     */
+
+    /// @notice Transfer ETH and return the success status.
+    /// @dev This function only forwards 30,000 gas to the callee.
     function _safeTransferETH(address to, uint256 value)
         internal
         returns (bool)
